@@ -74,7 +74,29 @@ Authorization: Bearer <your-jwt-token>
 
 ### 接口列表
 
-#### 1. 获取工具清单
+#### 1. 用户登录
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+响应示例：
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "username": "admin",
+  "roles": ["ADMIN", "USER"]
+}
+```
+
+#### 2. 获取工具清单
 
 ```http
 GET /mcp/manifest
@@ -103,7 +125,7 @@ Authorization: Bearer <token>
 }
 ```
 
-#### 2. 执行工具
+#### 3. 执行工具
 
 ```http
 POST /mcp/tools/{toolName}
@@ -133,7 +155,7 @@ Content-Type: application/json
 }
 ```
 
-#### 3. 动态注册工具（仅 ADMIN）
+#### 4. 动态注册工具（仅 ADMIN）
 
 第三方用户可以通过 API 注册自己的服务为 MCP 工具，无需修改代码：
 
@@ -182,21 +204,21 @@ params 中每个参数的定义：
 | required | 否 | 是否必填，默认 false |
 | description | 否 | 参数描述 |
 
-#### 4. 注销工具（仅 ADMIN）
+#### 5. 注销工具（仅 ADMIN）
 
 ```http
 DELETE /admin/tools/{toolName}
 Authorization: Bearer <admin-token>
 ```
 
-#### 5. 查看已注册工具列表（仅 ADMIN）
+#### 6. 查看已注册工具列表（仅 ADMIN）
 
 ```http
 GET /admin/tools
 Authorization: Bearer <admin-token>
 ```
 
-#### 6. 健康检查
+#### 7. 健康检查
 
 ```http
 GET /actuator/health
@@ -224,6 +246,7 @@ src/main/java/com/wcwl/mcpgateway/
 ├── controller/                      # 控制器
 │   ├── admin/                       # 管理接口
 │   │   └── ToolAdminController.java
+│   ├── AuthController.java          # 用户登录
 │   ├── ManifestController.java      # 工具清单
 │   └── McpToolController.java       # 工具执行
 ├── dto/                             # 数据传输对象
@@ -361,7 +384,6 @@ export JWT_SECRET=your-production-secret-key
 
 ## 待完善功能
 
-- [ ] 登录接口（获取 JWT Token）
 - [ ] 用户管理（数据库存储）
 - [ ] 工具版本管理
 - [ ] API 限流

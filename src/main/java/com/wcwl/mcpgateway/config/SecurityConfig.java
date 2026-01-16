@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -57,6 +59,20 @@ public class SecurityConfig {
     }
 
     /**
+     * 密码编码器
+     * 
+     * <p>使用 DelegatingPasswordEncoder，支持多种密码格式：</p>
+     * <ul>
+     *   <li>{noop} - 明文密码（仅开发测试）</li>
+     *   <li>{bcrypt} - BCrypt 加密（推荐）</li>
+     * </ul>
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+    /**
      * 配置安全过滤器链
      * 
      * <h3>什么是 @Bean？</h3>
@@ -94,6 +110,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // /actuator/** - 健康检查、指标等端点，允许所有人访问
                 .requestMatchers("/actuator/**").permitAll()
+                
+                // /auth/** - 认证接口，允许所有人访问
+                .requestMatchers("/auth/**").permitAll()
                 
                 // /admin/** - 管理接口，只有 ADMIN 角色可以访问
                 // hasRole("ADMIN") 会自动匹配 "ROLE_ADMIN" 权限
