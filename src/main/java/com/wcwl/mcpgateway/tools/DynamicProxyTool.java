@@ -8,6 +8,7 @@ import com.wcwl.mcpgateway.common.constant.ErrorCodes;
 import com.wcwl.mcpgateway.common.exception.McpToolException;
 import com.wcwl.mcpgateway.dto.request.ToolRegisterRequest;
 import com.wcwl.mcpgateway.dto.request.ToolRegisterRequest.ParamDefinition;
+import com.wcwl.mcpgateway.model.mcp.ToolMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -61,15 +62,29 @@ public class DynamicProxyTool extends BaseTool {
     private final RestTemplate restTemplate;
 
     /**
+     * 工具元数据
+     */
+    private ToolMetadata metadata;
+
+    /**
      * 构造函数
      * 
      * @param config 工具配置
      * @param restTemplate HTTP 客户端（由 Spring 管理，支持连接池）
+     * @param username 注册人用户名
      */
-    public DynamicProxyTool(ToolRegisterRequest config, RestTemplate restTemplate) {
+    public DynamicProxyTool(ToolRegisterRequest config, RestTemplate restTemplate, String username) {
         this.config = config;
         this.restTemplate = restTemplate;
         this.inputSchema = buildInputSchema(config.getParams());
+        this.metadata = ToolMetadata.forDynamicTool(username, config.getCategory());
+    }
+
+    /**
+     * 兼容旧构造函数
+     */
+    public DynamicProxyTool(ToolRegisterRequest config, RestTemplate restTemplate) {
+        this(config, restTemplate, "unknown");
     }
 
     @Override
@@ -93,6 +108,23 @@ public class DynamicProxyTool extends BaseTool {
             return Set.of();
         }
         return new HashSet<>(config.getRequiredRoles());
+    }
+
+    @Override
+    public ToolMetadata getMetadata() {
+        return metadata;
+    }
+
+    @Override
+    public void setMetadata(ToolMetadata metadata) {
+        this.metadata = metadata;
+    }
+
+    /**
+     * 获取工具配置（用于持久化）
+     */
+    public ToolRegisterRequest getConfig() {
+        return config;
     }
 
     /**

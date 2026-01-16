@@ -5,6 +5,7 @@ import com.wcwl.mcpgateway.common.constant.ErrorCodes;
 import com.wcwl.mcpgateway.common.exception.McpToolException;
 import com.wcwl.mcpgateway.dto.response.McpSuccessResponse;
 import com.wcwl.mcpgateway.model.mcp.McpTool;
+import com.wcwl.mcpgateway.model.mcp.ToolStatus;
 import com.wcwl.mcpgateway.service.tool.ToolRegistryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -108,6 +109,12 @@ public class McpToolController {
         if (tool == null) {
             throw new McpToolException(ErrorCodes.TOOL_NOT_FOUND, 
                     "Tool not found: " + toolName, 404);
+        }
+
+        // 检查工具是否已发布
+        if (tool.getMetadata().getStatus() != ToolStatus.PUBLISHED) {
+            throw new McpToolException(ErrorCodes.FORBIDDEN,
+                    "Tool is not available: " + toolName, 403);
         }
 
         // 执行工具并获取结果

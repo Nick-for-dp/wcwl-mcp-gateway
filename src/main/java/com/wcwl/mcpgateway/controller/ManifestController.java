@@ -89,8 +89,8 @@ public class ManifestController {
      */
     @GetMapping("/manifest")
     public ResponseEntity<McpManifestResponse> getManifest() {
-        // 将所有工具转换为 ToolDefinition 列表
-        List<ToolDefinition> tools = toolRegistry.getAllTools().stream()
+        // 只返回已发布的工具
+        List<ToolDefinition> tools = toolRegistry.getPublishedTools().stream()
                 // 将 McpTool 转换为 ToolDefinition
                 // 只保留客户端需要的信息：名称、描述、参数 Schema
                 .map(tool -> new ToolDefinition(

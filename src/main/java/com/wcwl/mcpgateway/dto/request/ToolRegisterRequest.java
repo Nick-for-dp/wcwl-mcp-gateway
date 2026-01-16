@@ -92,6 +92,13 @@ public class ToolRegisterRequest {
     private List<String> requiredRoles;
 
     /**
+     * 工具分类
+     * 
+     * <p>用于对工具进行分组管理，如：数据查询、仓库管理、贸易服务等</p>
+     */
+    private String category;
+
+    /**
      * 参数定义（简化格式）
      */
     @Data

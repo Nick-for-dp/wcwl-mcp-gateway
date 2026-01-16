@@ -1,6 +1,7 @@
 package com.wcwl.mcpgateway.service.tool;
 
 import com.wcwl.mcpgateway.model.mcp.McpTool;
+import com.wcwl.mcpgateway.model.mcp.ToolStatus;
 
 import java.util.Collection;
 
@@ -81,4 +82,21 @@ public interface ToolRegistryService {
      * @param name 要注销的工具名称
      */
     void unregister(String name);
+
+    /**
+     * 获取所有已发布的工具（供普通用户使用）
+     * 
+     * @return 已发布状态的工具集合
+     */
+    Collection<McpTool> getPublishedTools();
+
+    /**
+     * 更新工具状态
+     * 
+     * @param name 工具名称
+     * @param status 新状态
+     * @param operator 操作人
+     * @return 是否更新成功
+     */
+    boolean updateToolStatus(String name, ToolStatus status, String operator);
 }

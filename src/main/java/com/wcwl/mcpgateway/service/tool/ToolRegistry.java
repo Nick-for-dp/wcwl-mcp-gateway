@@ -1,10 +1,13 @@
 package com.wcwl.mcpgateway.service.tool;
 
 import com.wcwl.mcpgateway.model.mcp.McpTool;
+import com.wcwl.mcpgateway.model.mcp.ToolMetadata;
+import com.wcwl.mcpgateway.model.mcp.ToolStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -150,5 +153,37 @@ public class ToolRegistry implements ToolRegistryService {
         if (removed != null) {
             log.info("Tool unregistered: {}", name);
         }
+    }
+
+    /**
+     * 获取所有已发布的工具
+     * 
+     * <p>只返回状态为 PUBLISHED 的工具，供普通用户使用。</p>
+     */
+    @Override
+    public Collection<McpTool> getPublishedTools() {
+        return toolMap.values().stream()
+                .filter(tool -> tool.getMetadata().getStatus() == ToolStatus.PUBLISHED)
+                .toList();
+    }
+
+    /**
+     * 更新工具状态
+     */
+    @Override
+    public boolean updateToolStatus(String name, ToolStatus status, String operator) {
+        McpTool tool = toolMap.get(name);
+        if (tool == null) {
+            return false;
+        }
+
+        ToolMetadata metadata = tool.getMetadata();
+        metadata.setStatus(status);
+        metadata.setUpdatedBy(operator);
+        metadata.setUpdatedAt(LocalDateTime.now());
+        tool.setMetadata(metadata);
+
+        log.info("Tool status updated: name={}, status={}, operator={}", name, status, operator);
+        return true;
     }
 }

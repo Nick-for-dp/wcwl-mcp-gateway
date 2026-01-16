@@ -3,11 +3,13 @@ package com.wcwl.mcpgateway.controller.admin;
 import com.wcwl.mcpgateway.common.constant.ErrorCodes;
 import com.wcwl.mcpgateway.common.exception.McpToolException;
 import com.wcwl.mcpgateway.dto.request.ToolRegisterRequest;
+import com.wcwl.mcpgateway.model.mcp.ToolStatus;
 import com.wcwl.mcpgateway.service.tool.ToolRegistryService;
 import com.wcwl.mcpgateway.tools.DynamicProxyTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -75,10 +77,13 @@ public class ToolAdminController {
      * </ol>
      * 
      * @param request 工具配置
+     * @param auth 当前用户认证信息
      * @return 注册结果
      */
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> registerTool(@RequestBody ToolRegisterRequest request) {
+    public ResponseEntity<Map<String, Object>> registerTool(
+            @RequestBody ToolRegisterRequest request,
+            Authentication auth) {
         // 参数校验
         validateRequest(request);
 
@@ -88,14 +93,17 @@ public class ToolAdminController {
                     "Tool already exists: " + request.getName(), 409);
         }
 
-        // 创建动态代理工具
-        DynamicProxyTool tool = new DynamicProxyTool(request, restTemplate);
+        // 获取当前用户名
+        String username = auth != null ? auth.getName() : "unknown";
+
+        // 创建动态代理工具（传入用户名和分类）
+        DynamicProxyTool tool = new DynamicProxyTool(request, restTemplate, username);
 
         // 注册工具
         toolRegistry.register(tool);
 
-        log.info("Dynamic tool registered: name={}, endpoint={}", 
-                request.getName(), request.getEndpoint());
+        log.info("Dynamic tool registered: name={}, endpoint={}, createdBy={}", 
+                request.getName(), request.getEndpoint(), username);
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -103,7 +111,10 @@ public class ToolAdminController {
                 "tool", Map.of(
                         "name", tool.getName(),
                         "description", tool.getDescription(),
-                        "endpoint", request.getEndpoint()
+                        "endpoint", request.getEndpoint(),
+                        "category", request.getCategory() != null ? request.getCategory() : "custom",
+                        "status", tool.getMetadata().getStatus().name(),
+                        "createdBy", username
                 )
         ));
     }
@@ -140,16 +151,93 @@ public class ToolAdminController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> listTools() {
         var tools = toolRegistry.getAllTools().stream()
-                .map(tool -> Map.of(
-                        "name", tool.getName(),
-                        "description", tool.getDescription()
-                ))
+                .map(tool -> {
+                    var metadata = tool.getMetadata();
+                    return Map.of(
+                            "name", tool.getName(),
+                            "description", tool.getDescription(),
+                            "category", metadata.getCategory(),
+                            "status", metadata.getStatus().name(),
+                            "statusDisplay", metadata.getStatus().getDisplayName(),
+                            "sourceType", metadata.getSourceType().name(),
+                            "createdBy", metadata.getCreatedBy(),
+                            "createdAt", metadata.getCreatedAt().toString(),
+                            "updatedBy", metadata.getUpdatedBy(),
+                            "updatedAt", metadata.getUpdatedAt().toString()
+                    );
+                })
                 .toList();
 
         return ResponseEntity.ok(Map.of(
                 "count", tools.size(),
                 "tools", tools
         ));
+    }
+
+    /**
+     * 上架工具
+     * 
+     * @param name 工具名称
+     * @param auth 当前用户认证信息
+     * @return 操作结果
+     */
+    @PostMapping("/{name}/publish")
+    public ResponseEntity<Map<String, Object>> publishTool(
+            @PathVariable String name,
+            Authentication auth) {
+        if (!toolRegistry.hasTool(name)) {
+            throw new McpToolException(ErrorCodes.TOOL_NOT_FOUND,
+                    "Tool not found: " + name, 404);
+        }
+
+        String operator = auth != null ? auth.getName() : "unknown";
+        boolean success = toolRegistry.updateToolStatus(name, ToolStatus.PUBLISHED, operator);
+
+        if (success) {
+            log.info("Tool published: name={}, operator={}", name, operator);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Tool published successfully",
+                    "toolName", name,
+                    "status", ToolStatus.PUBLISHED.name()
+            ));
+        } else {
+            throw new McpToolException(ErrorCodes.TOOL_EXECUTION_ERROR,
+                    "Failed to publish tool", 500);
+        }
+    }
+
+    /**
+     * 下架工具
+     * 
+     * @param name 工具名称
+     * @param auth 当前用户认证信息
+     * @return 操作结果
+     */
+    @PostMapping("/{name}/offline")
+    public ResponseEntity<Map<String, Object>> offlineTool(
+            @PathVariable String name,
+            Authentication auth) {
+        if (!toolRegistry.hasTool(name)) {
+            throw new McpToolException(ErrorCodes.TOOL_NOT_FOUND,
+                    "Tool not found: " + name, 404);
+        }
+
+        String operator = auth != null ? auth.getName() : "unknown";
+        boolean success = toolRegistry.updateToolStatus(name, ToolStatus.OFFLINE, operator);
+
+        if (success) {
+            log.info("Tool offline: name={}, operator={}", name, operator);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Tool offline successfully",
+                    "toolName", name,
+                    "status", ToolStatus.OFFLINE.name()
+            ));
+        } else {
+            throw new McpToolException(ErrorCodes.TOOL_EXECUTION_ERROR,
+                    "Failed to offline tool", 500);
+        }
     }
 
     /**

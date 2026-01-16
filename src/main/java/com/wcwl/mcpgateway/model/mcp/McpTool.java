@@ -123,6 +123,28 @@ public interface McpTool {
     }
 
     /**
+     * 获取工具元数据
+     * 
+     * <p>元数据包含工具的上传人、上传时间、分类、状态等信息。</p>
+     * 
+     * @return 工具元数据，默认返回内置工具的默认元数据
+     */
+    default ToolMetadata getMetadata() {
+        return ToolMetadata.builtinDefault();
+    }
+
+    /**
+     * 设置工具元数据
+     * 
+     * <p>用于更新工具的元数据信息，如状态变更等。</p>
+     * 
+     * @param metadata 新的元数据
+     */
+    default void setMetadata(ToolMetadata metadata) {
+        // 默认空实现，子类可覆盖
+    }
+
+    /**
      * 执行工具
      * 
      * <p>这是工具的核心方法，包含实际的业务逻辑。</p>
